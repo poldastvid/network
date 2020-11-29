@@ -1,0 +1,85 @@
+
+https://poweruser.guru/questions/470319/%D0%BA%D0%B0%D0%BA-%D0%B2%D0%BA%D0%BB%D1%8E%D1%87%D0%B8%D1%82%D1%8C-%D0%BE%D0%B1%D1%89%D0%B8%D0%B9-%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF-%D0%BA-%D0%BF%D0%BE%D0%B4%D0%BA%D0%BB%D1%8E%D1%87%D0%B5%D0%BD%D0%B8%D1%8E-%D0%BA-%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%BD%D0%B5%D1%82%D1%83-%D1%81-%D0%BF%D0%BE%D0%BC%D0%BE%D1%89%D1%8C%D1%8E-%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D0%BD%D0%BE%D0%B9-%D1%81%D1%82%D1%80%D0%BE%D0%BA%D0%B8
+Исходя из того, что я прочитал, если те, кто писал, сказали, что netsh не работает, начиная с 7 и выше, это неправильно. Теперь, если речь идет строго о « netsh routing », я думаю, вы могли бы быть правы, но это работает - я собираюсь показать содержимое созданного мной пакетного файла, который работает на Windows 8.1. Вместо того, чтобы получать обычные комментарии и фрагменты информации, я постараюсь помочь тем, кто обладает полной информацией.
+
+Во-первых, вы должны убедиться, что соединение, которым вы будете делиться, настроено на фактическое использование соединения. Эта ссылка должна помочь вам в этом:
+
+http://windows.microsoft.com/en-us/windows/set-internet-connection-sharing#1TC=windows-7
+
+Откройте «Сетевые подключения», нажав кнопку «Пуск» Изображение кнопки «Пуск», а затем нажмите «Панель управления». В поле поиска введите адаптер, а затем в разделе Центр управления сетями и общим доступом щелкните Просмотр сетевых подключений.
+
+Щелкните правой кнопкой мыши соединение, которым вы хотите поделиться, и выберите Свойства. Требуется разрешение администратора. Если вас попросят ввести пароль администратора или подтверждение, введите пароль или предоставьте подтверждение.
+
+Перейдите на вкладку «Общий доступ» и установите флажок «Разрешить другим пользователям сети подключаться через этот компьютер к интернет-соединению».
+
+После того, как вы выполнили шаги, описанные выше, чтобы настроить ICS на главном компьютере, внесите следующие изменения на всех других компьютерах (но не на главном компьютере).
+
+Откройте «Свойства обозревателя», нажав кнопку «Пуск» Изображение кнопки «Пуск», выберите «Панель управления», «Сеть и Интернет», а затем «Свойства обозревателя».
+
+Перейдите на вкладку «Подключения» и нажмите «Никогда не набирать соединение».
+
+Нажмите Настройки локальной сети.
+
+В диалоговом окне «Параметры локальной сети» в разделе «Автоматическая настройка» снимите флажки «Автоматически определять параметры» и «Использовать сценарий автоматической настройки».
+
+В разделе «Прокси-сервер» снимите флажок «Использовать прокси-сервер для локальной сети» и нажмите кнопку «ОК».
+
+Насколько мне известно, я думаю, что это должно работать как для Windows 7, так и для 8.
+
+Теперь, поскольку тема была о решении для командной строки, это содержимое пакетного файла о том, как настроить виртуальный беспроводной адаптер и готов к работе.
+
+После его создания вам, возможно, придется воспользоваться приведенными выше инструкциями и убедиться, что вы передаете исходное соединение недавно созданному виртуальному адаптеру, который будет виден вашим беспроводным устройствам.
+
+Совместное использование файла .bat:
+
+@echo off
+set _my_datetime=%date%_%time%
+set _my_datetime=%_my_datetime: =_%
+set _my_datetime=%_my_datetime::=%
+set _my_datetime=%_my_datetime:/=_%
+set _my_datetime=%_my_datetime:.=_%
+
+cd\
+    if NOT EXIST "C:\TEMP\switch.txt" (
+        GOTO :START
+    ) ELSE (
+        GOTO :STOP
+    )
+
+:START
+REM Create Temp File for On and Off switch.
+ECHO WOOHOO >"C:\TEMP\switch.txt"
+
+REM -- Output everything that is happening into a file called wifi.txt.
+REM -- Start out with a timestamp at the top to show when it was done.
+REM -- All 'netsh' commands are for setting up the SSID and starting the    sharing.
+REM -- I stop and start when starting the service just for prosperity.
+
+echo _%_my_datetime% >"C:\TEMP\wifi.txt"
+netsh wlan set hostednetwork mode=allow ssid=ITWORKS key=111222333 >>    "C:\TEMP\wifi.txt"
+netsh wlan stop hostednetwork >>"C:\TEMP\wifi.txt"
+netsh wlan start hostednetwork >>"C:\TEMP\wifi.txt"
+echo MSGBOX "Wifi Sharing Started!" > %temp%\TEMPmessage.vbs
+call %temp%\TEMPmessage.vbs
+del %temp%\TEMPmessage.vbs /f /q
+GOTO :END
+
+
+REM -- This will turn ICS off and give a prompt via VBS that you're turned off.
+REM -- I timestamp when the service is turned off in the output file.
+REM -- I delete the switch file to let the code know to turn it on when
+REM -- when fired off again.  Tempmessage is the msgbox used to show the service
+REM -- has been turned off.  Same for the msgbox above when it's on.
+
+:STOP
+echo OFF AT _%_my_datetime% >>"C:\TEMP\wifi.txt"
+netsh wlan stop hostednetwork >>"C:\TEMP\wifi.txt"
+DEL /Q "C:\TEMP\switch.txt"
+echo MSGBOX "Wifi Sharing Stopped!" > %temp%\TEMPmessage.vbs
+call %temp%\TEMPmessage.vbs
+del %temp%\TEMPmessage.vbs /f /q
+
+:END
+Я буду более чем счастлив ответить на вопросы по этому поводу, потому что будут некоторые уникальные ситуации, и я хотел бы помочь, так как мне пришлось собрать воедино то, что я нашел выше.
+
+Но чтобы представить это на первый взгляд, это работает в Windows 8.1 с использованием соединения Ethernet с ноутбуком, который использует свое соединение с виртуальным адаптером. Это может работать так же хорошо, если вы пытаетесь поделиться источником беспроводного соединения.
